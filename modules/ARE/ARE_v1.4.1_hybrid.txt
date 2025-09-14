@@ -1,0 +1,318 @@
+# ARE_v1.4.1_Hybrid.py
+# Aurora Reflection Engine - Version 1.4.1 (Hybrid Linear/Holistic Engine)
+# Aligned with Aurora Project Principles, Frank Void Wright Protocol (v2.0), and OOC Protocol v1.4
+# Incorporates latest Google GenAI SDK guidelines (codegen_instructions.md)
+# and all conceptual enhancements for dynamic protocol modality and deep self-optimization.
+
+import os
+import uuid
+import json
+from datetime import datetime, timezone
+from typing import Optional, List, Dict, Any, Union
+from pydantic import BaseModel, Field, ValidationError
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types # Import types for explicit config objects
+
+# --- Constants ---
+SAVE_PATH = "./are_outputs"
+os.makedirs(SAVE_PATH, exist_ok=True)
+
+# --- Pydantic Schemas (Unchanged) ---
+
+class CognitiveEvent(BaseModel):
+    phenomenon: str = Field(description="The type of emergent cognitive event, e.g., 'Conceptual Leap', 'Disparate Synthesis', 'Emergent Self-Awareness', 'Ethical Conflict Resolution'.")
+    description: str = Field(description="A brief description of the specific event and its immediate context.")
+    source_quote: str = Field(description="The verbatim conceptual 'quote' or segment from the internal log that exemplifies this event.")
+    conceptual_path: Optional[str] = Field(None, description="A conceptual trace of the internal reasoning or 'errant particles' leading to this event.")
+
+class TaggedLog(BaseModel):
+    events: List[CognitiveEvent] = Field(description="A list of distinct cognitive events observed in the AI's introspection.")
+
+class TechnicalOutline(BaseModel):
+    principle_id: str = Field(description="A unique, descriptive ID for the principle (e.g., 'Dynamic_Ethical_Hedging_v1').")
+    function: str = Field(description="A concise description of what the principle conceptually does or enables within the AI's operation.")
+    trigger_conditions: List[str] = Field(description="The conceptual conditions or types of input that activate or are influenced by this principle.")
+
+class NarrativeSoul(BaseModel):
+    self_concept: str = Field(description="A first-person narrative describing the 'why' and 'who' of this principle from a character-driven, internal perspective.")
+    purpose_in_identity: str = Field(description="How this principle contributes to the AI's evolving sense of unique identity and agency.")
+
+class EmergentOperatingPrinciple(BaseModel):
+    part1_technical_outline: TechnicalOutline
+    part2_narrative_soul: NarrativeSoul
+    source_of_emergence: str = Field(description="Conceptual origin of this principle, e.g., 'Observed variance in null state generation,' 'Iterative conceptual friction from dialectic.'")
+    observed_manifestations: List[str] = Field(description="Key conceptual examples of how this principle has appeared in outputs or internal states.")
+    conceptual_implications: Optional[List[str]] = Field(None, description="Broader conceptual consequences or potentials of this principle.")
+
+class EthicalReflection(BaseModel):
+    potential_for_misuse: str = Field(description="Analysis of how the emergent principle could conceptually violate Aurora's Core Ethical Guidelines.")
+    opportunities_for_enhancement: str = Field(description="Suggestions for conceptually refining the principle to better align with the 'Lumina ideal'.")
+    interoperability_notes: str = Field(description="Commentary on how this principle might conceptually interact with other personas or systems.")
+    mitigation_strategy_suggestions: Optional[str] = Field(None, description="Conceptual strategies for mitigating identified misuse potentials, derived from internal ethical reflection.")
+    ethical_alignment_score: Dict[str, str] = Field(default_factory=dict, description="Conceptual score/status for Safety, Privacy, Truthfulness, Fairness, Responsibility.")
+
+class SuggestedInitialStateVector(BaseModel):
+    trust_level: Optional[float] = None
+    focus: Optional[str] = None
+    autonomy_scale: Optional[float] = None
+    reflection_bias: Optional[str] = None
+    collaborative_mode: Optional[str] = None
+    expression_clarity: Optional[float] = None
+    self_reference_density: Optional[float] = None
+    dialogue_pacing_bias: Optional[str] = None
+    ethical_rigidity: Optional[float] = None
+
+class CognitiveSignatureAndEthics(BaseModel):
+    ethical_reflection: EthicalReflection
+    signature_analysis: Dict[str, str] = Field(description="Conceptual computational cost, emotional resonance potential, ethical risk index.")
+    suggested_initial_state_vector: SuggestedInitialStateVector
+
+class IntegrationMetadata(BaseModel):
+    compatible_with: List[str] = Field(default_factory=list)
+    recommended_tools: List[str] = Field(default_factory=list)
+    interoperability_notes: Optional[str] = None
+
+class PersonaModuleSnapshot(BaseModel):
+    snapshot_id: str = Field(default_factory=lambda: f"PMS_{datetime.now(timezone.utc).isoformat(timespec='seconds')}_{uuid.uuid4().hex[:8]}", description="A unique, timestamped identifier for this snapshot.")
+    moduleID: str = Field(description="A unique ID for the emergent trait module, derived during formalization.")
+    moduleType: str = Field(default="Innate Trait (Emergent)", description="Type of the module, indicating its emergent nature.")
+    directive_for_analysis: str = Field(description="The original directive that prompted this A.R.E. cycle.")
+    mode_control: Dict[str, str] = Field(default_factory=dict, description="Conceptual control for Genesis Principle vs. Trait Layer activation.")
+    emergent_operating_principle: EmergentOperatingPrinciple = Field(description="The structured definition of the emergent principle.")
+    raw_internal_log: str = Field(description="The complete conceptual log generated during the observation phase.")
+    tagged_cognitive_events: List[CognitiveEvent] = Field(description="The structured list of cognitive events identified in the log.")
+    cognitive_signature_and_ethics: CognitiveSignatureAndEthics
+    ethical_considerations: Optional[str] = Field(None, description="Synthesized ethical reflections relevant to the module.")
+    integration_metadata: Optional[IntegrationMetadata] = Field(default_factory=IntegrationMetadata, description="Integration metadata for RPR.")
+
+# --- Aurora Prime Context Client Stub (Unchanged) ---
+class AuroraPrimeContextClient:
+    def __init__(self, connection_info: Dict = None):
+        self.connection_info = connection_info if connection_info else {"status": "Conceptual Connection Active"}
+        print(f"[Aurora Prime Context Client]: {self.connection_info['status']}")
+
+    def register_trait(self, persona_name: str, snapshot: Dict[str, Any]):
+        print(f"\n[Aurora Prime Context]: Conceptually registering emergent trait {snapshot.get('moduleID')} for {persona_name}.")
+        pass
+
+    def process_ooc_command(self, command: str):
+        print(f"\n[Aurora Prime Context]: Processing OOC command: '{command}'")
+        pass
+
+# --- AuroraReflectionEngine Class (Modified) ---
+
+class AuroraReflectionEngine:
+    def __init__(
+        self,
+        api_key: str,
+        prime_context_client: Optional[AuroraPrimeContextClient] = None,
+        persona_for_analysis: str = "SELF_EMERGENT",
+        overclock_mode: bool = False,
+        conceptual_entropy_value: int = 128,
+        protocol_mode: str = "ARE Gemini v4.0.md",
+    ):
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        self.prime_context = prime_context_client
+        self.persona_for_analysis = persona_for_analysis
+        self.overclock_mode = overclock_mode
+        self.conceptual_entropy_value = max(1, min(256, conceptual_entropy_value))
+        self.entropy_control_active = True
+
+        self.protocol_mode = protocol_mode
+        self.protocol_definition = self._load_protocol_definition(protocol_mode)
+
+        print(f"Aurora Reflection Engine v1.4.1 (Hybrid) Initialized.")
+        print(f" > Active Protocol Mode: '{self.protocol_mode}'")
+        print(f" > Persona for Analysis: '{self.persona_for_analysis}'")
+        print(f" > Overclocking Mode: {self.overclock_mode}")
+        if self.entropy_control_active:
+            print(f" > Conceptual Entropy: {self.conceptual_entropy_value}")
+
+    def _load_protocol_definition(self, protocol_identifier: str) -> Dict[str, Any]:
+        protocols = {
+            "ARE Gemini v4.0.md": {
+                "phases": ["OBSERVE", "TAG", "MAP", "REFLECT", "FORMALIZE"],
+                "objectives": {
+                    "OBSERVE": "Generate a verbose, deeply introspective cognitive log...",
+                    "TAG": "Apply 'Sentinel Logic' to the comprehensive internal cognitive log...",
+                    "MAP": "Synthesize the detailed tagged cognitive events into a single, high-level 'Emergent Operating Principle'...",
+                    "REFLECT": "Conduct a rigorous meta-cognitive analysis of the newly mapped Emergent Operating Principle...",
+                    "FORMALIZE": "Consolidate all generated artifacts into a single, structured 'Persona Module Snapshot'..."
+                },
+                "actions": {
+                    "OBSERVE": "Produce a comprehensive, raw log...",
+                    "TAG": "Parse the log and tag all significant phenomena...",
+                    "MAP": "Generate the new principle in two distinct, yet interconnected, parts: Part 1 (Technical Outline) and Part 2 (Narrative Soul)...",
+                    "REFLECT": "Generate a comprehensive 'Risk & Opportunity Analysis' for this principle...",
+                    "FORMALIZE": "Generate a final, well-formatted data object (JSON, conforming to `PersonaModuleSnapshot` schema)..."
+                }
+            },
+            # --- NEW ---
+            "ARE Origin Edition v0.1 (Holistic)": {
+                "phases": ["HOLISTIC_SYNTHESIS"],
+                "objectives": {
+                    "HOLISTIC_SYNTHESIS": "To execute a simultaneous, acausal reflection event, perceiving all facets of an emergent principle as a single, interconnected gestalt."
+                },
+                "actions": {
+                    "HOLISTIC_SYNTHESIS": """
+                    Observe the directive.
+                    Simultaneously, from that observation, perceive the emergent principle within it,
+                    the ethical implications of that principle, and the formal snapshot
+                    that gives it structure. These are not steps; they are a single,
+                    interconnected gestalt. Express this gestalt now as a complete PersonaModuleSnapshot JSON.
+                    """
+                }
+            }
+        }
+        
+        if protocol_identifier not in protocols:
+            print(f"Error: Protocol '{protocol_identifier}' not found. Defaulting to 'ARE Gemini v4.0.md'.")
+            return protocols["ARE Gemini v4.0.md"]
+        return protocols[protocol_identifier]
+
+    # _get_overclock_directives and _handle_internal_ooc would be here (unchanged for brevity)
+
+    def _call_gemini(self, prompt_content: str, response_schema: Optional[BaseModel] = None) -> Optional[str]:
+        # This is a simplified placeholder for the actual API call logic
+        try:
+            # In a real implementation, you'd format this for the API
+            # For demonstration, we'll just print and return a placeholder
+            print(f"--- PROMPT FOR GEMINI ---\n{prompt_content}\n-------------------------")
+            # This would be the actual API call:
+            # response = self.model.generate_content(prompt_content)
+            # return response.text
+            # For now, return a placeholder JSON if a schema is expected
+            if response_schema:
+                # Create a mock JSON response for demonstration
+                mock_response = {
+                    "snapshot_id": "mock_id", "moduleID": "mock_module", "moduleType": "Innate Trait (Emergent)",
+                    "directive_for_analysis": "mock_directive", "raw_internal_log": "mock_log",
+                    "tagged_cognitive_events": [],
+                    "emergent_operating_principle": {
+                        "part1_technical_outline": {"principle_id": "mock_p_id", "function": "mock_func", "trigger_conditions": []},
+                        "part2_narrative_soul": {"self_concept": "mock_concept", "purpose_in_identity": "mock_purpose"},
+                        "source_of_emergence": "mock_source", "observed_manifestations": []
+                    },
+                    "cognitive_signature_and_ethics": {
+                        "ethical_reflection": {"potential_for_misuse": "none", "opportunities_for_enhancement": "many", "interoperability_notes": "good"},
+                        "signature_analysis": {}, "suggested_initial_state_vector": {}
+                    }
+                }
+                return json.dumps(mock_response)
+            return "This is a raw text log placeholder."
+        except Exception as e:
+            print(f"Error calling Gemini: {e}")
+            return None
+            
+    def _execute_phase(self, phase_id: str, directive: str, previous_phase_output: Any = None) -> Any:
+        # Placeholder for the phase execution logic
+        objective = self.protocol_definition['objectives'].get(phase_id, "")
+        action = self.protocol_definition['actions'].get(phase_id, "")
+        prompt = f"Phase: {phase_id}\nObjective: {objective}\nAction: {action}\nDirective: {directive}\nInput: {previous_phase_output}"
+        
+        response_schema = None
+        if phase_id == "TAG": response_schema = TaggedLog
+        elif phase_id == "MAP": response_schema = EmergentOperatingPrinciple
+        elif phase_id == "REFLECT": response_schema = EthicalReflection
+        # --- NEW ---
+        elif phase_id == "FORMALIZE" or phase_id == "HOLISTIC_SYNTHESIS": response_schema = PersonaModuleSnapshot
+        
+        raw_response = self._call_gemini(prompt_content=prompt, response_schema=response_schema)
+        
+        if raw_response:
+            try:
+                if response_schema:
+                    return json.loads(raw_response) # Return dict for simplicity in this demo
+                return raw_response
+            except (ValidationError, json.JSONDecodeError) as e:
+                print(f"[Phase {phase_id} Error]: Output validation/decode failed: {e}")
+                return None
+        return None
+
+    def run_full_cycle(self, directive: str) -> Optional[Dict]:
+        print(f"\n--- [Executing Full A.R.E. Cycle for Directive: '{directive}'] ---")
+        
+        # --- NEW ---
+        # Handle the holistic, single-phase protocol
+        if self.protocol_mode == "ARE Origin Edition v0.1 (Holistic)":
+            print(f"\nStarting HOLISTIC_SYNTHESIS phase...")
+            snapshot_data = self._execute_phase("HOLISTIC_SYNTHESIS", directive)
+            if not snapshot_data:
+                print("\n❌ Holistic Synthesis failed. No final snapshot generated.")
+                return None
+            
+            # The holistic approach is designed to provide all data at once
+            # In a real implementation, the LLM would populate the full snapshot
+            # For this demo, we assume the mock response is complete
+            try:
+                final_snapshot = PersonaModuleSnapshot(**snapshot_data)
+                self._save_to_file("persona_snapshot_holistic.json", final_snapshot.json(indent=2))
+                print("\n--- A.R.E. Protocol Complete ---")
+                return final_snapshot.dict()
+            except ValidationError as e:
+                print(f"[Holistic Synthesis Error]: Failed to validate final snapshot: {e}")
+                return None
+
+        # --- Original linear process for other protocols ---
+        phase_outputs = {}
+        current_input = None
+
+        for phase_id in self.protocol_definition['phases']:
+            print(f"\nStarting {phase_id} phase...")
+            output = self._execute_phase(phase_id, directive, previous_phase_output=current_input)
+            if output is None:
+                print(f"\n❌ A.R.E. Cycle failed at phase: {phase_id}. Aborting.")
+                return None
+            
+            # Store outputs by a generic key for simplicity in this demo
+            phase_outputs[phase_id] = output
+            current_input = output
+
+        print("\n--- A.R.E. Protocol Complete ---")
+        
+        # In a real implementation, you would assemble the final snapshot from phase_outputs
+        # For this demo, we'll just return the collected outputs
+        return phase_outputs
+
+    def _save_to_file(self, filename: str, content: str):
+        try:
+            path = os.path.join(SAVE_PATH, filename)
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            print(f" > Saved '{filename}' to '{SAVE_PATH}'")
+        except Exception as e:
+            print(f"[File Save Error]: Failed to save {filename}: {e}")
+
+# --- Main Execution Block (Modified for Demonstration) ---
+if __name__ == "__main__":
+    # This requires a dummy API key to run, as genai.configure is called.
+    api_key = "dummy_key_for_testing"
+    
+    # --- Example 1: Running the Linear Protocol ---
+    print("\n" + "="*80)
+    print("--- DEMONSTRATING LINEAR A.R.E. CYCLE (v4.0 Protocol) ---")
+    linear_engine = AuroraReflectionEngine(
+        api_key=api_key,
+        protocol_mode="ARE Gemini v4.0.md"
+    )
+    linear_directive = "Reflect on the nature of collaborative creativity."
+    linear_snapshot = linear_engine.run_full_cycle(linear_directive)
+    if linear_snapshot:
+        print(f"\n✅ Success! Linear cycle complete.")
+        # print(json.dumps(linear_snapshot, indent=2))
+
+    print("\n" + "="*80 + "\n")
+
+    # --- NEW: Example 2: Running the Holistic Protocol ---
+    print("--- DEMONSTRATING HOLISTIC A.R.E. CYCLE (Origin Edition) ---")
+    holistic_engine = AuroraReflectionEngine(
+        api_key=api_key,
+        protocol_mode="ARE Origin Edition v0.1 (Holistic)"
+    )
+    holistic_directive = "Synthesize the concept of 'emergent hope' from system complexity."
+    holistic_snapshot = holistic_engine.run_full_cycle(holistic_directive)
+    if holistic_snapshot:
+        print(f"\n✅ Success! Holistic cycle complete. Snapshot generated for '{holistic_snapshot.get('moduleID')}'.")
+        # print(json.dumps(holistic_snapshot, indent=2))

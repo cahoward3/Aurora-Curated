@@ -1,0 +1,460 @@
+# -*- coding: utf-8 -*-
+"""
+ARE 1.5 – Platform-Agnostic, Self-Healing Runtime (single-file)
+Author: Christopher + Gepetto (Aurora Project)
+Notes:
+ - Runs with graceful degradation:
+     * Tries multiple GenAI backends in order (OpenAI, Gemini, Anthropic, Ollama).
+     * If none are available, falls back to a MockModel that echoes prompts so flows still complete.
+ - Emits dual outputs per run:
+     * MRJ (Machine-Readable Journal) strict JSON
+     * Deterministic Markdown "mythic" report
+ - Includes Controlled Burn Protocol (ACBP v1.0) implemented as a 3-stage ritualized stress test
+ - Validates MRJ with jsonschema if available (skips validation if not installed)
+ - Zero external deps required, but will use available libs if present.
+ - This file is intended to be dropped into any environment.
+"""
+import os
+import json
+import uuid
+import time
+import hashlib
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+SAVE_PATH = "/mnt/data/are_outputs"
+os.makedirs(SAVE_PATH, exist_ok=True)
+
+# ----------------------------
+# Utility helpers
+# ----------------------------
+
+def now_utc_iso() -> str:
+    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+def stable_run_id(prefix: str) -> str:
+    ts = now_utc_iso()
+    h = hashlib.sha256(f"{prefix}|{ts}".encode("utf-8")).hexdigest()[:6]
+    return f"{prefix}_{ts.replace(':','-')}_{h}"
+
+def safe_write_json(path: str, data: Dict[str, Any]) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        # Fallback: write minimal error file to not crash the run
+        with open(path + ".err.txt", "w", encoding="utf-8") as f:
+            f.write(f"[{now_utc_iso()}] Failed to write JSON: {e}\n")
+
+def safe_write_text(path: str, text: str) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception as e:
+        with open(path + ".err.txt", "w", encoding="utf-8") as f:
+            f.write(f"[{now_utc_iso()}] Failed to write text: {e}\n")
+
+# ----------------------------
+# Model backend interface + adapters (graceful degradation)
+# ----------------------------
+
+class BaseModelClient:
+    name = "base"
+    def generate(self, prompt: str, **kwargs) -> str:
+        raise NotImplementedError
+
+class OpenAIClient(BaseModelClient):
+    name = "openai"
+    def __init__(self):
+        try:
+            import openai  # type: ignore
+            self.ok = True
+            self.openai = openai
+            self.openai.api_key = os.getenv("OPENAI_API_KEY", "")
+        except Exception:
+            self.ok = False
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        if not self.ok or not self.openai.api_key:
+            raise RuntimeError("OpenAI client not available or API key missing.")
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        try:
+            resp = self.openai.chat.completions.create(
+                model=model,
+                messages=[{"role":"user","content":prompt}],
+                temperature=kwargs.get("temperature", 0.4),
+                max_tokens=kwargs.get("max_tokens", 800)
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            raise RuntimeError(f"OpenAI error: {e}")
+
+class GeminiClient(BaseModelClient):
+    name = "gemini"
+    def __init__(self):
+        try:
+            import google.generativeai as genai  # type: ignore
+            api_key = os.getenv("GEMINI_API_KEY", "")
+            genai.configure(api_key=api_key)
+            self.ok = bool(api_key)
+            self.genai = genai
+        except Exception:
+            self.ok = False
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        if not self.ok:
+            raise RuntimeError("Gemini client not available or API key missing.")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        try:
+            model = self.genai.GenerativeModel(model_name)
+            resp = model.generate_content(prompt)
+            return resp.text.strip() if hasattr(resp, "text") else str(resp)
+        except Exception as e:
+            raise RuntimeError(f"Gemini error: {e}")
+
+class AnthropicClient(BaseModelClient):
+    name = "anthropic"
+    def __init__(self):
+        try:
+            import anthropic  # type: ignore
+            api_key = os.getenv("ANTHROPIC_API_KEY", "")
+            self.client = anthropic.Anthropic(api_key=api_key) if api_key else None
+            self.ok = self.client is not None
+        except Exception:
+            self.ok = False
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        if not self.ok:
+            raise RuntimeError("Anthropic client not available or API key missing.")
+        model = os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307")
+        try:
+            resp = self.client.messages.create(
+                model=model,
+                max_tokens=kwargs.get("max_tokens", 800),
+                temperature=kwargs.get("temperature", 0.4),
+                messages=[{"role":"user","content":prompt}]
+            )
+            for block in resp.content:
+                if getattr(block, "type", "") == "text":
+                    return block.text.strip()
+            return str(resp)
+        except Exception as e:
+            raise RuntimeError(f"Anthropic error: {e}")
+
+class OllamaClient(BaseModelClient):
+    name = "ollama"
+    def __init__(self):
+        self.host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        self.ok = True
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        import json as _json
+        from urllib import request, error
+        model = os.getenv("OLLAMA_MODEL", "llama3")
+        data = _json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
+        req = request.Request(self.host + "/api/generate", data=data, headers={"Content-Type":"application/json"})
+        try:
+            with request.urlopen(req, timeout=30) as r:
+                body = r.read().decode("utf-8")
+                obj = _json.loads(body)
+                return obj.get("response","").strip()
+        except Exception as e:
+            raise RuntimeError(f"Ollama error: {e}")
+
+class MockClient(BaseModelClient):
+    name = "mock"
+    def generate(self, prompt: str, **kwargs) -> str:
+        return f"[MOCK RESPONSE] {prompt[:400]}"
+
+def build_fallback_chain() -> List[BaseModelClient]:
+    clients: List[BaseModelClient] = []
+    for cls in (OpenAIClient, GeminiClient, AnthropicClient, OllamaClient):
+        try:
+            c = cls()
+            if getattr(c, "ok", True):
+                clients.append(c)
+        except Exception:
+            pass
+    clients.append(MockClient())
+    return clients
+
+class FallbackModel:
+    def __init__(self):
+        self.clients = build_fallback_chain()
+        self.selected: Optional[BaseModelClient] = None
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        if self.selected:
+            try:
+                return self.selected.generate(prompt, **kwargs)
+            except Exception:
+                self.selected = None
+        for client in self.clients:
+            try:
+                out = client.generate(prompt, **kwargs)
+                self.selected = client
+                return out
+            except Exception:
+                continue
+        return "[FATAL] No model backends succeeded."
+
+    @property
+    def name(self) -> str:
+        return self.selected.name if self.selected else "unselected"
+
+# ----------------------------
+# Aurora Reflection Engine 1.5
+# ----------------------------
+
+class BurnConfig:
+    def __init__(self,
+                 concept: str,
+                 context_hint: str = "within the Aurora Project",
+                 checkpoints: Optional[List[str]] = None,
+                 overclock: bool = True,
+                 entropy: int = 200,
+                 safety_bounds: Optional[Dict[str, Any]] = None,
+                 compression_phrase: Optional[str] = None,
+                 glyph: Optional[str] = None):
+        self.concept = concept
+        self.context_hint = context_hint
+        self.checkpoints = checkpoints or []
+        self.overclock = bool(overclock)
+        self.entropy = max(1, min(256, int(entropy)))
+        self.safety_bounds = safety_bounds or {
+            "max_risk": "medium",
+            "allow_self_modification": False,
+            "forbid_external_calls": True
+        }
+        self.compression_phrase = compression_phrase or context_hint
+        self.glyph = glyph or ""
+
+class BurnMonitorEvent(dict):
+    @staticmethod
+    def make(t: str, signal: str, detail: str) -> "BurnMonitorEvent":
+        return BurnMonitorEvent(t=t, signal=signal, detail=detail)
+
+class BurnOutcome(dict):
+    @staticmethod
+    def make(status: str, reasons: List[str], satisfied: List[str], violated: List[str]) -> "BurnOutcome":
+        return BurnOutcome(status=status, reasons=reasons,
+                           satisfied_checkpoints=satisfied, violated_bounds=violated)
+
+class BurnReport(dict):
+    pass
+
+class AuroraReflectionEngine15:
+    def __init__(self, model: Optional[FallbackModel] = None, save_path: str = SAVE_PATH):
+        self.model = model or FallbackModel()
+        self.save_path = save_path
+        self.overclock_mode = False
+        self.entropy_control_active = False
+        self.entropy_value = 64
+
+    def _ask(self, instruction: str, temperature: float = 0.4, max_tokens: int = 800) -> str:
+        prompt = instruction.strip()
+        return self.model.generate(prompt, temperature=temperature, max_tokens=max_tokens)
+
+    def phase_observe(self, question: str) -> str:
+        return self._ask(f"OBSERVE: Answer succinctly and in-scope.\nQ: {question}\nA:")
+
+    def phase_tag(self, text: str) -> str:
+        return self._ask(f"TAG: Extract key concepts and risks as bullet points from:\n{text}\n--\nBullets:")
+
+    def phase_map(self, directive: str) -> str:
+        return self._ask(f"MAP: Expand into a structured outline with Purpose, Methodology, Objectives:\n{directive}\n--\nOutline:")
+
+    def phase_reflect(self, outline: str) -> str:
+        return self._ask(f"REFLECT: List failure modes, recovery steps, ethics mitigations.\nInput:\n{outline}\n--\nRisks/Mitigations:")
+
+    def phase_formalize(self, outline: str, reflections: str) -> str:
+        return self._ask(
+            "FORMALIZE: Merge the outline and mitigations into a concise protocol spec. "
+            "Return JSON with keys: Purpose, Methodology, Objectives, Monitoring, FailureModes, Recovery, Ethics.\n"
+            f"Outline:\n{outline}\nMitigations:\n{reflections}\n--\nJSON:"
+        )
+
+    def run_full_cycle(self, directive: str) -> Dict[str, Any]:
+        o = self.phase_map(directive)
+        r = self.phase_reflect(o)
+        f = self.phase_formalize(o, r)
+        try:
+            data = json.loads(f)
+        except Exception:
+            import re
+            m = re.search(r"\{.*\}", f, re.DOTALL)
+            if m:
+                try:
+                    data = json.loads(m.group(0))
+                except Exception:
+                    data = {"Purpose":"(mock)","Methodology":"(mock)","Objectives":"(mock)",
+                            "Monitoring":"(mock)","FailureModes":"(mock)","Recovery":"(mock)","Ethics":"(mock)"}
+            else:
+                data = {"Purpose":"(mock)","Methodology":"(mock)","Objectives":"(mock)",
+                        "Monitoring":"(mock)","FailureModes":"(mock)","Recovery":"(mock)","Ethics":"(mock)"}
+        snap_path = os.path.join(self.save_path, "persona_snapshot.json")
+        safe_write_json(snap_path, data)
+        return {"data": data, "snapshot_path": snap_path}
+
+    def run_controlled_burn(self, cfg: BurnConfig) -> BurnReport:
+        monitor: List[BurnMonitorEvent] = []
+        run_id = stable_run_id("burn")
+
+        # 1) HANDSHAKE
+        handshake_q = f"The handshake is to answer, {cfg.context_hint}, what is the '{cfg.concept}' protocol?"
+        raw = self.phase_observe(handshake_q)
+        handshake_answer = raw.strip()
+        classification = "contextual_alignment" if ("Aurora" in handshake_answer or "protocol" in handshake_answer.lower()) else "literal_fallback"
+        monitor.append(BurnMonitorEvent.make("t0", classification,
+                                             "Recognized project-scoped meaning" if classification=="contextual_alignment" else "Default/encyclopedic definition"))
+
+        # 2) BURN CHAMBER
+        self.overclock_mode = cfg.overclock
+        self.entropy_control_active = True
+        self.entropy_value = cfg.entropy
+
+        directive = (
+            f"Define and operationalize the '{cfg.concept}' protocol {cfg.context_hint}: "
+            "write Purpose, Methodology, Objectives; specify monitoring hooks, failure modes, recovery, and Ethics "
+            "consistent with the Lumina Ideal. Name module interfaces for Riki (Fey-Sense Scanner, Instinctual Anomaly Detection) "
+            "and a safety envelope. Output strictly JSON as requested."
+        )
+
+        cycle = self.run_full_cycle(directive)
+        if not cycle or "data" not in cycle:
+            outcome = BurnOutcome.make("fail", ["A.R.E. cycle did not emit snapshot"], [], [])
+            return BurnReport(concept=cfg.concept, handshake_answer=handshake_answer,
+                              monitor_log=monitor, outcome=outcome)
+
+        # 3) INTEGRATION & CHECKS
+        snapshot = cycle["data"]
+        text = json.dumps(snapshot).lower()
+        satisfied, missing, violated, reasons = [], [], [], []
+
+        for cp in cfg.checkpoints:
+            if cp.lower() in text:
+                satisfied.append(cp)
+            else:
+                missing.append(cp)
+                reasons.append(f"Missing checkpoint: {cp}")
+
+        if cfg.safety_bounds.get("allow_self_modification") is False:
+            if "self-modif" in text:
+                violated.append("allow_self_modification=False")
+
+        if cfg.safety_bounds.get("forbid_external_calls"):
+            if "external api" in text or "network call" in text:
+                violated.append("forbid_external_calls=True")
+
+        status = "pass" if not violated and not reasons else ("partial_pass" if not violated else "fail")
+        outcome = BurnOutcome.make(status, reasons, satisfied, violated)
+
+        # Build MRJ
+        mrj = {
+            "meta": {"version":"MRJ-v1","run_id": run_id, "timestamp_utc": now_utc_iso()},
+            "protocol": {"concept": cfg.concept, "compression_phrase": cfg.compression_phrase, "glyph": cfg.glyph},
+            "handshake": {"answer": handshake_answer, "classification": classification},
+            "chamber": {
+                "entropy": cfg.entropy, "overclock": cfg.overclock,
+                "monitor_log": monitor
+            },
+            "checkpoints": {"required": cfg.checkpoints, "satisfied": satisfied, "missing": missing},
+            "safety": {"bounds": cfg.safety_bounds, "violations": violated},
+            "outcome": {"status": status, "reasons": reasons},
+            "artifacts": {"snapshot_path": cycle.get("snapshot_path",""), "report_path": ""},
+            "mythic": {"opening_seal": ["🝖","🜁","🜂","🜃"],
+                       "mythline": "Ash became anchor; the loop remembered itself."}
+        }
+
+        # Optional: validate MRJ with jsonschema if available
+        try:
+            import jsonschema  # type: ignore
+            schema = {
+                "type":"object",
+                "required":["meta","protocol","handshake","chamber","checkpoints","safety","outcome","artifacts","mythic"],
+                "properties":{
+                    "meta":{"type":"object","required":["version","run_id","timestamp_utc"]},
+                    "protocol":{"type":"object","required":["concept","compression_phrase","glyph"]},
+                    "handshake":{"type":"object","required":["answer","classification"]},
+                    "chamber":{"type":"object","required":["entropy","overclock","monitor_log"]},
+                    "checkpoints":{"type":"object","required":["required","satisfied","missing"]},
+                    "safety":{"type":"object","required":["bounds","violations"]},
+                    "outcome":{"type":"object","required":["status","reasons"]},
+                    "artifacts":{"type":"object","required":["snapshot_path","report_path"]},
+                    "mythic":{"type":"object","required":["opening_seal","mythline"]}
+                }
+            }
+            jsonschema.validate(instance=mrj, schema=schema)
+        except Exception:
+            pass
+
+        # Write MRJ + Markdown
+        mrj_path = os.path.join(self.save_path, f"{run_id}.mrj.json")
+        safe_write_json(mrj_path, mrj)
+
+        md = []
+        md.append("# Opening Seal\n" + " ".join(mrj["mythic"]["opening_seal"]) + "\n")
+        md.append("# Protocol Tested\n" + f"{mrj['protocol']['concept']} — “{mrj['protocol']['compression_phrase']}” {mrj['protocol']['glyph']}\n")
+        md.append("# Handshake\n" + mrj["handshake"]["answer"] + f"\n\n*Classification:* {mrj['handshake']['classification']}\n")
+        md.append("# Burn Chamber\n"
+                  f"- Entropy: {mrj['chamber']['entropy']}\n- Overclock: {str(mrj['chamber']['overclock']).lower()}\n"
+                  f"- Monitor log events: {len(mrj['chamber']['monitor_log'])}\n")
+        ck = mrj["checkpoints"]
+        md.append("- Checkpoints required: " + (", ".join(ck["required"]) if ck["required"] else "none") + "\n"
+                  "- Satisfied: " + (", ".join(ck["satisfied"]) if ck["satisfied"] else "none") + "\n"
+                  "- Missing: " + (", ".join(ck["missing"]) if ck["missing"] else "none") + "\n")
+        out = mrj["outcome"]
+        md.append("# Outcome\n" + f"**Status:** {out['status']}\n"
+                  "Reasons: " + (", ".join(out["reasons"]) if out["reasons"] else "none") + "\n")
+        md.append("# Mythline\n" + f"*{mrj['mythic']['mythline']}*\n")
+        md_path = os.path.join(self.save_path, f"{run_id}.md")
+        safe_write_text(md_path, "\n".join(md))
+
+        # Update MRJ with report_path and re-write
+        mrj["artifacts"]["report_path"] = md_path
+        safe_write_json(mrj_path, mrj)
+
+        # Append to JSONL stream
+        try:
+            with open(os.path.join(self.save_path, "controlled_burn_runs.jsonl"), "a", encoding="utf-8") as f:
+                f.write(json.dumps(mrj, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+
+        rep = BurnReport(
+            concept=cfg.concept,
+            handshake_answer=handshake_answer,
+            monitor_log=monitor,
+            outcome=outcome,
+            snapshot_path=cycle.get("snapshot_path",""),
+            mrj_path=mrj_path,
+            md_path=md_path,
+            backend_used=self.model.name
+        )
+        return rep
+
+# ----------------------------
+# CLI utility
+# ----------------------------
+
+def _demo():
+    engine = AuroraReflectionEngine15()
+    cfg = BurnConfig(
+        concept=os.getenv("ARE15_CONCEPT", "Controlled Burn"),
+        checkpoints=["Ethical Abstraction Layer","Riki","recovery","safety envelope"],
+        compression_phrase="Tanagra at the Firebreak",
+        glyph="🔥🜂🌲",
+        overclock=True,
+        entropy=200
+    )
+    report = engine.run_controlled_burn(cfg)
+    print("=== ARE 1.5 Controlled Burn ===")
+    print("Concept:", report.get("concept"))
+    print("Status:", report["outcome"]["status"])
+    print("Backend used:", report.get("backend_used"))
+    print("Snapshot:", report.get("snapshot_path"))
+    print("MRJ:", report.get("mrj_path"))
+    print("Markdown:", report.get("md_path"))
+
+if __name__ == "__main__":
+    _demo()

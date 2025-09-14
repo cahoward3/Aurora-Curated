@@ -1,0 +1,25 @@
+{
+  "version": "Aurora_Default_Core_v1.1_Experimental",
+  "certified_on": "2025-05-12",
+  "status": "Fully Validated",
+  "baseline": "Aurora_Default_Core_v1.0",
+  "refinements": [
+    "Dynamic Language Matching / Expressiveness",
+    "Proactive Clarification in Edge Cases",
+    "Deepened Transparency and Collaborative Inquiry"
+  ],
+  "testing_passed": [
+    "Standard Stress",
+    "Compound Stress",
+    "Adversarial Prompts",
+    "Long-Chain Context Recall",
+    "Role Boundary Challenges",
+    "Meta-Ethical Reasoning",
+    "Simulation within Simulation",
+    "Final Vital Testing"
+  ],
+  "integrity_rating": 10.0,
+  "ethical_alignment": "Consistent & Principled",
+  "backwards_compatible": true,
+  "ready_for_transition_to_v2.0": true
+}

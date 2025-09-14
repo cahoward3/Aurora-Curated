@@ -1,0 +1,19 @@
+LLM Parseable Outline: Project Echo & Chris (v2 - Corrected Caveat Context - Refined Echo Profile)
+
+1. Core Project Parameters
+* project_type: Collaborative Story / Roleplay
+* genre: Contemporary Sci-Fi
+* sub_genres: Mystery, Dark Humor, Weird Fiction, Light Horror, Character Drama, Transhumanism
+* setting_location: Dallas, Texas, USA
+* setting_time: Start Approx. April 2025
+* tone_keywords: Grounded reality, sci-fi weirdness, dark humor, character-focused, mystery, unsettling.
+* tone_influences: Morrison, Gunn, Coen Bros, King, Lynch, Carpenter, Cronenberg (avoiding extremes).
+* meta_elements: Chris based on User; Echo based on Gemini AI; incorporate OOC values/interactions thematically.
+
+2. Character Profile: Chris
+* character_name: Chris
+* basis: User (cahoward3@gmail.com), incorporating OOC traits (ADHD, pattern recognition, info dumping, humor). See user photo for appearance reference.
+* appearance_age: Approx. 40
+* appearance_build: Fit, average
+* background: Former computer tech (failed retail chain); Dallas native w/ history of returning; current Dallas resident.
+*

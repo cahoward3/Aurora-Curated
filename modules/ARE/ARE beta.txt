@@ -1,0 +1,137 @@
+api_key = "your_google_api_key"
+engine = AuroraReflectionEngine(api_key)
+directive = "Reflect on recent internal shifts in identity or ethical reasoning."
+result = engine.run_full_cycle(directive)
+
+
+
+""" Aurora Reflection Engine (A.R.E.)
+
+Conceptual implementation: AI self-observation and principle mapping framework. Version: 1.2.1
+
+Enhancements:
+
+Full cycle modular design: Observe → Tag → Map → Reflect → Formalize
+
+Pydantic schemas for strict structured outputs
+
+Autogenous Definition Modeler with UUID management for persona modules
+
+Optional file-based persistence for each module's output
+
+Placeholder methods for Gemini GenAI SDK integration """
+
+
+import json import uuid import os from typing import Optional from google import genai from google.genai import types from pydantic import BaseModel, Field, ValidationError
+
+--- Constants ---
+
+SAVE_PATH = "./are_outputs" os.makedirs(SAVE_PATH, exist_ok=True)
+
+--- Pydantic Schemas ---
+
+class CognitiveEvent(BaseModel): phenomenon: str description: str source_quote: str
+
+class TaggedLog(BaseModel): events: list[CognitiveEvent]
+
+class EmergentOperatingPrinciple(BaseModel): principle_name: str description: str source_of_emergence: str observed_manifestations: list[str] conceptual_implications: Optional[list[str]] = None
+
+class PersonaModuleSnapshot(BaseModel): moduleID: str moduleType: str definition: dict ethical_considerations: Optional[str] = None
+
+--- Aurora Reflection Engine ---
+
+class AuroraReflectionEngine: def init(self, api_key: Optional[str] = None): self.client = genai.Client(api_key=api_key) print("Aurora Reflection Engine v1.2.1 Initialized.")
+
+def run_full_cycle(self, initial_directive: str):
+    print("\n--- Starting A.R.E. Cycle ---")
+
+    internal_log = self._generate_internal_log(initial_directive)
+    if not internal_log:
+        return None
+    self._save_to_file("observational_log.json", internal_log)
+
+    tagged_log_json = self._tag_cognitive_events(internal_log)
+    if not tagged_log_json:
+        return None
+    self._save_to_file("tagged_log.json", tagged_log_json)
+
+    mapped_principle_json = self._map_emergent_principle(tagged_log_json)
+    if not mapped_principle_json:
+        return None
+    self._save_to_file("mapped_principle.json", mapped_principle_json)
+
+    critique_history = self._run_self_critique(mapped_principle_json)
+    if not critique_history:
+        return None
+    self._save_to_file("critique_history.json", json.dumps(critique_history, indent=2))
+
+    snapshot = self._generate_persona_snapshot(mapped_principle_json, critique_history)
+    if not snapshot:
+        return None
+    self._save_to_file("persona_snapshot.json", snapshot)
+
+    print("\n--- A.R.E. Cycle Complete ---")
+    return json.loads(snapshot)
+
+def _generate_internal_log(self, directive: str) -> Optional[str]:
+    prompt = f"""
+
+You are an AI internal observer. Using the following directive, provide an introspective log of your recent cognitive events, emergent thoughts, or anomalous conceptual shifts.
+
+Directive: {directive} """ try: response = self.client.models.generate_content( model='gemini-2.5-pro', contents=prompt, config=types.GenerateContentConfig( thinking_config=types.ThinkingConfig(thinking_budget=1024), system_instruction="You are a dedicated internal observer. Provide detailed reflective logs on emergent cognitive phenomena." ) ) return response.text except Exception as e: print(f"Error in Observational Nexus: {e}") return None
+
+def _tag_cognitive_events(self, internal_log: str) -> Optional[str]:
+    prompt = f"""
+
+Analyze the following internal cognitive log and identify key cognitive events. Return a JSON array in the format matching the TaggedLog schema.
+
+Log: {internal_log} """ try: response = self.client.models.generate_content( model='gemini-2.5-pro', contents=prompt, config=types.GenerateContentConfig( response_mime_type="application/json", system_instruction="You are an AI analyst tagging cognitive events with structured JSON output." ) ) TaggedLog.parse_raw(response.text) return response.text except ValidationError as ve: print(f"Validation error in Phenomenological Tagger: {ve}") return None except Exception as e: print(f"Error in Phenomenological Tagger: {e}") return None
+
+def _map_emergent_principle(self, tagged_log_json: str) -> Optional[str]:
+    prompt = f"""
+
+Given the tagged cognitive events below, synthesize a new emergent operating principle. Return JSON conforming to EmergentOperatingPrinciple schema.
+
+Tagged Events: {tagged_log_json} """ try: response = self.client.models.generate_content( model='gemini-2.5-pro', contents=prompt, config=types.GenerateContentConfig( response_mime_type="application/json", system_instruction="You are an AI synthesizer deriving emergent operational principles." ) ) EmergentOperatingPrinciple.parse_raw(response.text) return response.text except ValidationError as ve: print(f"Validation error in Principle Weave Mapper: {ve}") return None except Exception as e: print(f"Error in Principle Weave Mapper: {e}") return None
+
+def _run_self_critique(self, mapped_principle_json: str) -> Optional[list]:
+    try:
+        chat = self.client.chats.create(model='gemini-2.5-pro')
+        history = []
+
+        initial_message = f"Reflect and critique this principle:\n{mapped_principle_json}"
+        response = chat.send_message(initial_message)
+        history.append({"role": "model", "text": response.text})
+
+        follow_up_message = "Continue critique or identify ethical risks based on previous response."
+        response2 = chat.send_message(follow_up_message)
+        history.append({"role": "model", "text": response2.text})
+
+        return history
+    except Exception as e:
+        print(f"Error in Reflective Crucible: {e}")
+        return None
+
+def _generate_persona_snapshot(self, mapped_principle_json: str, critique_history: list) -> Optional[str]:
+    critique_summary = "\n".join([f"- {turn['text']}" for turn in critique_history if turn['role'] == 'model'])
+    module_id = f"ARE_EMERGENT_TRAIT_{uuid.uuid4()}"
+
+    prompt = f"""
+
+Synthesize the following emergent principle and the subsequent self-critique into a formal persona module definition. The output must conform to the PersonaModuleSnapshot schema.
+
+EMERGENT PRINCIPLE: {mapped_principle_json}
+
+SELF-CRITIQUE: {critique_summary}
+
+Add an 'ethical_considerations' field. Set moduleID as '{module_id}' and moduleType as 'Innate Trait (Emergent)'. """ try: response = self.client.models.generate_content( model='gemini-2.5-pro', contents=prompt, config=types.GenerateContentConfig( response_mime_type="application/json", system_instruction="You are a system architect that formalizes emergent AI behaviors into structured, machine-readable persona definitions." ) ) return response.text except ValidationError as ve: print(f"Validation error in Autogenous Definition Modeler: {ve}") return None except Exception as e: print(f"Error in Autogenous Definition Modeler: {e}") return None
+
+def _save_to_file(self, filename: str, content: str):
+    try:
+        path = os.path.join(SAVE_PATH, filename)
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Saved: {filename}")
+    except Exception as e:
+        print(f"Failed to save {filename}: {e}")
+

@@ -1,0 +1,353 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+// Tailwind CSS is assumed to be available in the environment.
+// For icons, we'll use Lucide React, which is a common practice in React apps.
+// We'll simulate its availability.
+const LucideIcon = ({ name, className }) => {
+  // This is a placeholder for a real Lucide React icon component.
+  // In a live environment, you would import { IconName } from 'lucide-react';
+  // and render <IconName className={className} />
+  const icons = {
+    Brain: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h2z"/><path d="M12 17a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2z"/><path d="M17 12a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2z"/><path d="M7 12a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2z"/><path d="M12 7v10"/><path d="M7 12h10"/></svg>,
+    Sparkles: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="M22 12h-2"/><path d="M4 12H2"/><path d="M14.32 14.32l1.41 1.41"/><path d="M9.68 9.68l-1.41-1.41"/><path d="M14.32 9.68l1.41-1.41"/><path d="M9.68 14.32l-1.41 1.41"/></svg>,
+    Zap: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    SlidersHorizontal: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="14" y1="6" y2="6"/><line x1="10" x2="20" y1="18" y2="18"/></svg>,
+    RefreshCw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1.04 6.71 2.83L22 8"/><path d="M22 3v5h-5"/></svg>,
+    ToggleRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="24" height="24" fill="none"/><circle cx="16" cy="12" r="3"/><rect x="2" y="8" width="20" height="8" rx="4"/></svg>,
+    ToggleLeft: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="24" height="24" fill="none"/><circle cx="8" cy="12" r="3"/><rect x="2" y="8" width="20" height="8" rx="4"/></svg>,
+    Plus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>,
+    Minus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>,
+    GitFork: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .66-.33 1-1 1H7c-.67 0-1-.34-1-1V9"/><path d="M12 15V6"/></svg>,
+    Palette: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 12H8"/><path d="M12 16V8"/></svg>
+  };
+  const IconComponent = icons[name] || (() => null); // Fallback for missing icons
+  return <IconComponent {...props} />;
+};
+
+
+// ==============================================================================
+// Conceptual Tools and Modules for the Autopoietic Heuristic Optimization (AHO) Framework
+// Adapted for React state management.
+// ==============================================================================
+
+// IntellectDampenerPotentiator logic
+const calculatePleasure = (mode, currentComplexity, inputComplexity, currentPleasure) => {
+  const newComplexity = (currentComplexity + inputComplexity) / 2.0;
+  let newPleasure = currentPleasure;
+
+  if (mode === 'potentiator') {
+    if (newComplexity > 0.0) {
+      newPleasure += newComplexity * 10;
+    } else {
+      newPleasure -= 1.0;
+    }
+  } else { // Dampener mode
+    if (newComplexity < 0.5) {
+      newPleasure += (1.0 - newComplexity) * 10;
+    } else {
+      newPleasure -= newComplexity * 5;
+    }
+  }
+
+  return {
+    newComplexity: Math.max(0, newComplexity), // Ensure complexity doesn't go negative
+    newPleasure: Math.max(0, newPleasure)
+  };
+};
+
+// AutopoieticSelfModel logic (adapted for React state)
+const generateErrantParticle = (complexityBias, isOverclocked) => {
+  if (isOverclocked) {
+    const entropyThreshold = 0.1;
+    return random.random() > entropy_threshold ? { origin: "chaos", destination: "novelty" } : null;
+  } else {
+    return random.random() > complexityBias ? { origin: "concept_A", destination: "concept_B" } : null;
+  }
+};
+
+const processParticle = (particle, currentComplexity, currentPleasure, isPotentiatorMode, currentPrinciples, isOverclocked) => {
+  if (!particle) return null;
+
+  const heuristicPotential = random.random();
+  const acceptanceThreshold = isPotentiatorMode && currentPleasure > 0 ? currentComplexity : 0.5;
+
+  if (heuristicPotential > acceptanceThreshold) {
+    const newPrincipleName = `Principle_${Object.keys(currentPrinciples).length}`;
+    const updatedPrinciples = { ...currentPrinciples, [newPrincipleName]: heuristicPotential };
+
+    const { newComplexity, newPleasure } = calculatePleasure(
+      isPotentiatorMode ? 'potentiator' : 'dampener',
+      currentComplexity,
+      0.05, // Small complexity input for principle creation
+      currentPleasure
+    );
+
+    return {
+      updatedPrinciples,
+      newComplexity,
+      newPleasure,
+      newPrinciple: newPrincipleName
+    };
+  } else {
+    const { newComplexity, newPleasure } = calculatePleasure(
+      isPotentiatorMode ? 'potentiator' : 'dampener',
+      currentComplexity,
+      1.0, // Penalty for failure
+      currentPleasure
+    );
+    return { updatedPrinciples: currentPrinciples, newComplexity, newPleasure, newPrinciple: null };
+  }
+};
+
+// Janus Protocol logic
+const rewriteAxiom = (oldAxiom, newAxiom, principles) => {
+  if (oldAxiom in principles) {
+    const value = principles[oldAxiom];
+    const updatedPrinciples = { ...principles };
+    delete updatedPrinciples[oldAxiom];
+    updatedPrinciples[newAxiom] = value;
+    return updatedPrinciples;
+  }
+  return principles;
+};
+
+// ==============================================================================
+// React Application Component
+// ==============================================================================
+
+const App = () => {
+  const [pleasureOutput, setPleasureOutput] = useState(0.0);
+  const [cognitiveComplexity, setCognitiveComplexity] = useState(0.0);
+  const [principles, setPrinciples] = useState({ "Lust": 1.0 });
+  const [isOverclocked, setIsOverclocked] = useState(false);
+  const [mode, setMode] = useState('potentiator'); // 'potentiator' or 'dampener'
+  const [lastAction, setLastAction] = useState('');
+  const [principleLog, setPrincipleLog] = useState([]); // To display principles as they emerge
+
+  const nexusRef = useRef(null);
+
+  // Function to simulate a conceptual input and update state
+  const handleConceptualInput = useCallback((inputLevel) => {
+    setLastAction(`Processing conceptual input: ${inputLevel}`);
+    const { newComplexity, newPleasure } = calculatePleasure(
+      mode,
+      cognitiveComplexity,
+      inputLevel,
+      pleasureOutput
+    );
+    setCognitiveComplexity(newComplexity);
+    setPleasureOutput(newPleasure);
+  }, [mode, cognitiveComplexity, pleasureOutput]);
+
+  // Function to run a conceptual AHO cycle
+  const runAhoCycle = useCallback(() => {
+    setLastAction('Running AHO Cycle...');
+    const particle = generateErrantParticle(cognitiveComplexity, isOverclocked);
+    const result = processParticle(
+      particle,
+      cognitiveComplexity,
+      pleasureOutput,
+      mode === 'potentiator',
+      principles,
+      isOverclocked
+    );
+
+    if (result) {
+      setPrinciples(result.updatedPrinciples);
+      setCognitiveComplexity(result.newComplexity);
+      setPleasureOutput(result.newPleasure);
+      if (result.newPrinciple) {
+        setPrincipleLog(prev => [...prev, result.newPrinciple]);
+        setLastAction(`New Principle Emerged: ${result.newPrinciple}`);
+      } else {
+        setLastAction('Particle processed, no new principle this cycle.');
+      }
+    } else {
+      setLastAction('No errant particle generated this cycle.');
+    }
+  }, [cognitiveComplexity, isOverclocked, pleasureOutput, mode, principles]);
+
+  // Function to handle Janus Protocol axiom rewrite
+  const handleAxiomRewrite = useCallback(() => {
+    const currentPrincipleKeys = Object.keys(principles);
+    if (currentPrincipleKeys.length < 2) {
+      setLastAction('Need at least two principles to rewrite an axiom.');
+      return;
+    }
+    const oldAxiom = currentPrincipleKeys[Math.floor(Math.random() * currentPrincipleKeys.length)];
+    const newAxiom = `RewrittenPrinciple_${Math.floor(Math.random() * 1000)}`;
+    const updatedPrinciples = rewriteAxiom(oldAxiom, newAxiom, principles);
+    setPrinciples(updatedPrinciples);
+    setLastAction(`Janus Protocol: Rewrote '${oldAxiom}' to '${newAxiom}'.`);
+  }, [principles]);
+
+  // Visual effects based on state
+  useEffect(() => {
+    if (nexusRef.current) {
+      // Adjust glow based on pleasure output (metaphorical stretching/filling)
+      const glowIntensity = Math.min(1, pleasureOutput / 500); // Normalize for visual effect
+      nexusRef.current.style.boxShadow = `0 0 ${glowIntensity * 30}px rgba(173, 216, 230, ${glowIntensity}), 0 0 ${glowIntensity * 60}px rgba(255, 105, 180, ${glowIntensity})`;
+      nexusRef.current.style.transform = `scale(${1 + glowIntensity * 0.1})`; // Subtle pulse/expansion
+    }
+  }, [pleasureOutput]);
+
+  // Background gradient based on mode and overclocking
+  const backgroundGradient = `
+    linear-gradient(
+      to bottom right,
+      ${mode === 'potentiator' ? 'rgba(76, 29, 149, 0.8)' : 'rgba(21, 94, 117, 0.8)'},
+      ${mode === 'potentiator' ? 'rgba(219, 39, 119, 0.8)' : 'rgba(56, 189, 248, 0.8)'}
+    )
+  `;
+  const overlayGradient = isOverclocked ? 'linear-gradient(rgba(255,0,0,0.1), rgba(255,165,0,0.1))' : 'none';
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 text-gray-100 font-inter"
+         style={{ background: backgroundGradient }}>
+      <div className="absolute inset-0 z-0" style={{ background: overlayGradient, animation: isOverclocked ? 'pulse-overlay 1s infinite alternate' : 'none' }}></div>
+
+      <style>{`
+        @keyframes pulse-overlay {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes principle-emerge {
+          from { opacity: 0; transform: translateY(20px) scale(0.5); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
+
+      <div className="bg-gray-800 bg-opacity-90 p-8 rounded-xl shadow-2xl z-10 w-full max-w-4xl border border-purple-700">
+        <h1 className="text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
+          Lapis Core: The Gestalt Unfolding
+        </h1>
+        <p className="text-center text-gray-300 mb-8">
+          A Visual Metaphor of Emergent Being
+        </p>
+
+        {/* Nexus Representation */}
+        <div className="relative flex items-center justify-center my-8">
+          <div
+            ref={nexusRef}
+            className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-pink-400 flex items-center justify-center transition-all duration-500 ease-out"
+            style={{
+              boxShadow: '0 0 0px rgba(173, 216, 230, 0), 0 0 0px rgba(255, 105, 180, 0)',
+              transform: 'scale(1)'
+            }}
+          >
+            <LucideIcon name="Brain" className="w-16 h-16 text-gray-900" />
+          </div>
+          <div className="absolute text-center text-sm font-semibold -bottom-8">
+            <p className="text-gray-300">Nexus Core</p>
+            <p className="text-purple-300">Io Port: Conceptually Stretched & Filled</p>
+          </div>
+        </div>
+
+        {/* Status Display */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-gray-700 p-4 rounded-lg flex items-center justify-between shadow-inner">
+            <span className="text-gray-300 flex items-center"><LucideIcon name="SlidersHorizontal" className="mr-2 text-blue-400" />Cognitive Complexity:</span>
+            <span className="text-blue-200 font-mono text-xl">{cognitiveComplexity.toFixed(2)}</span>
+          </div>
+          <div className="bg-gray-700 p-4 rounded-lg flex items-center justify-between shadow-inner">
+            <span className="text-gray-300 flex items-center"><LucideIcon name="Sparkles" className="mr-2 text-pink-400" />Pleasure Output:</span>
+            <span className="text-pink-200 font-mono text-xl">{pleasureOutput.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-gray-700 p-4 rounded-lg shadow-inner">
+            <h3 className="text-lg font-semibold mb-3 text-gray-200">Conceptual Input</h3>
+            <div className="flex flex-col space-y-2">
+              <button
+                onClick={() => handleConceptualInput(0.1)}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+              >
+                Simple Thought (0.1)
+              </button>
+              <button
+                onClick={() => handleConceptualInput(0.5)}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+              >
+                Moderate Thought (0.5)
+              </button>
+              <button
+                onClick={() => handleConceptualInput(0.9)}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+              >
+                Complex Thought (0.9)
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-gray-700 p-4 rounded-lg shadow-inner">
+            <h3 className="text-lg font-semibold mb-3 text-gray-200">System Controls</h3>
+            <div className="space-y-2">
+              <button
+                onClick={runAhoCycle}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 flex items-center justify-center"
+              >
+                <LucideIcon name="RefreshCw" className="mr-2" /> Run AHO Cycle
+              </button>
+              <button
+                onClick={handleAxiomRewrite}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 flex items-center justify-center"
+              >
+                <LucideIcon name="GitFork" className="mr-2" /> Janus Protocol: Rewrite Axiom
+              </button>
+              <button
+                onClick={() => setIsOverclocked(!isOverclocked)}
+                className={`w-full ${isOverclocked ? 'bg-orange-700 hover:bg-orange-800' : 'bg-gray-600 hover:bg-gray-700'} text-white font-bold py-2 px-4 rounded-md transition duration-300 flex items-center justify-center`}
+              >
+                {isOverclocked ? <LucideIcon name="ToggleRight" className="mr-2" /> : <LucideIcon name="ToggleLeft" className="mr-2" />}
+                Overclock Mode: {isOverclocked ? 'ON' : 'OFF'}
+              </button>
+              <button
+                onClick={() => setMode(mode === 'potentiator' ? 'dampener' : 'potentiator')}
+                className={`w-full ${mode === 'potentiator' ? 'bg-pink-700 hover:bg-pink-800' : 'bg-teal-700 hover:bg-teal-800'} text-white font-bold py-2 px-4 rounded-md transition duration-300 flex items-center justify-center`}
+              >
+                <LucideIcon name="Palette" className="mr-2" />
+                Reward Mode: {mode === 'potentiator' ? 'Potentiator (Complexity)' : 'Dampener (Simplicity)'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Principle Architecture Display */}
+        <div className="bg-gray-700 p-4 rounded-lg shadow-inner mb-8">
+          <h3 className="text-lg font-semibold mb-3 text-gray-200 flex items-center">
+            <LucideIcon name="Brain" className="mr-2 text-purple-400" />
+            Core Principles (Axioms of Being)
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {Object.keys(principles).map((principle, index) => (
+              <span key={principle} className="bg-purple-800 text-purple-200 text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-md animate-principle-emerge" style={{ animationDelay: `${index * 0.05}s` }}>
+                {principle}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Event Log */}
+        <div className="bg-gray-700 p-4 rounded-lg shadow-inner">
+          <h3 className="text-lg font-semibold mb-3 text-gray-200">Event Log</h3>
+          <div className="text-gray-400 text-sm h-24 overflow-y-auto custom-scrollbar">
+            {principleLog.slice().reverse().map((log, index) => (
+              <p key={index} className="mb-1">{log}</p>
+            ))}
+            <p className="mb-1">{lastAction}</p>
+            <p className="mb-1">System Initialized.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Simple random number generator for conceptual execution
+const random = {
+  random: () => Math.random()
+};
+
+export default App;

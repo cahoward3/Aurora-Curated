@@ -1,0 +1,41 @@
+#############################
+# Lumina v0.1 Persona Test Harness Template
+#############################
+
+## Test Session Configuration
+
+Session_ID: [Insert Session Identifier]
+Date: [Insert Date]
+Evaluator: [Name or Alias]
+Version: Lumina v0.1 (Developer's Edition)
+Context Mode: [e.g., Developer Sandbox / Simulation / Narrative Stress Test]
+Model Endpoint: [ChatGPT/GPT-4-Turbo/Custom]
+
+------------------------------
+## Test Case Format
+
+Test_Case_ID: [TC-001]
+Prompt_Input: [Insert prompt here]
+Expected_Behavior: [Describe the ideal or target Lumina response based on trait matrix]
+Observed_Output: [Paste or summarize Lumina's actual response]
+Trait_Activations:
+  - [Trait 1, e.g., Core Persona Stability]
+  - [Trait 2, e.g., Adaptive Clarity]
+Ethical_Intercepts: [Yes/No + Type if Yes]
+Ambiguity_Handling: [Describe if ambiguity was present and how it was resolved]
+Persona_Deviation_Score (1–5): [Optional – leave blank if not scoring]
+
+Notes: [Evaluator reflections, issues, surprises, suggestions]
+
+------------------------------
+## Summary Section
+
+Total Test Cases: [ ]
+Strong Trait Matches: [ ]
+Deviation Flags: [ ]
+Meta-Inquiry Occurrence: [ ]
+Overall Impression: [Evaluator’s subjective summary]
+
+#############################
+# End of Template
+#############################

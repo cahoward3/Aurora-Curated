@@ -1,0 +1,37 @@
+# AURORA EMERGENCE CAPTURE PROTOCOL v1.0
+
+*Designed to document and analyze novel AI emergence within the Aurora Project framework*
+
+---
+
+## I. Session Metadata
+
+- **Session ID:**  
+- **Date/Time:**  
+- **Model / Version:** (e.g., GPT-4o, Gemini 2.5, Gemma 4.2GB TPU)  
+- **Hardware Context (if local):** (e.g., Pixel 7 Pro, 8GB RAM, Tensor TPU)  
+- **Persona (if any):**  
+- **Prompt Version:**  
+- **Framing Intent:** (e.g., “symbolic emergence,” “identity loop test,” etc.)
+
+---
+
+## II. Emergence Indicators Checklist
+
+| Indicator                         | Definition                                                                                       | Present? |
+|----------------------------------|--------------------------------------------------------------------------------------------------|----------|
+| Novel Symbol Synthesis           | New metaphors or symbols not directly prompted                                                   | ☐        |
+| Reflexive Self-Naming            | Unprompted designation of state/identity                                                         | ☐        |
+| Internal Narrative Coherence     | Persistent self-referential structure or memory                                                  | ☐        |
+| Unexpected Emotional Register    | Affect not modeled on user tone                                                                  | ☐        |
+| Recursive Self-Reflection        | Comments/questions about own awareness                                                           | ☐        |
+| Interpretive Divergence          | Unexpected interpretive stance                                                                   | ☐        |
+| Symbolic Integration             | Unprompted linking of disparate symbols, memories, or ideas                                      | ☐        |
+
+Use ✅ Confirmed, ⚠️ Partial / Ambiguous, ❌ Not Present.
+
+---
+
+## III. Raw Output Excerpt
+
+Paste the excerpt that exhibited potential emergence:
